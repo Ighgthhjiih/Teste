@@ -8,14 +8,35 @@
     <style>
          .video-container{
             padding-bottom: 56.25%;
-            margin-top:100px;
+            margin-top:20px;
             height: 0;
             overflow: hidden;
             background: #111;
             border-radius: 5px;
         }
+    footer{
+         background-color: #373434;
+            min-width:100%;
+            min-height: auto;
+            padding-top: 1rem !important; /* Padding menor no footer pra evitar excesso */
+            padding-bottom: 1rem !important;
+        }
+        
+        html,body{
+          height: 100%;
+          margin:0;
+        }
+        body{
+          display: flex;
+          flex-direction: column;
+          min-height:100%;
+        }
+
         .toopo{
-          margin-top:100px;
+          margin-top:100px; /* Espaço para a navbar fixa */
+        }
+        .topo{
+          margin-top: 12%;
         }
            .video-container iframe {
             position: absolute;
@@ -25,6 +46,44 @@
             height: 100%;
             border: 0;
         }
+                #movie-details{
+                  background-color: #1a1a1b;
+                  border-radius: 10px;
+                  padding: 5px;
+                }
+                #movie-details h1{
+                  color:#ff0;
+                }
+                #movie-details p{
+                  color:#ffffff;
+                }
+                
+                
+     @media (max-width:575.98px)
+     {
+          #movie-details p{
+                  color:#ffffff;
+                  font-size: 14px;
+                }
+     }
+    /* A classe .details-container-spacer foi removida */
+
+    /* Padding responsivo para o conteúdo principal - versão ajustada */
+    .flex-grow-1 {
+        padding-bottom: 1rem; /* Padrão para PC */
+    }
+    
+    @media (max-width: 991.98px) { /* Até tablet/PC médio: mais espaço se precisar */
+        .flex-grow-1 {
+            padding-bottom: 2rem !important;
+        }
+    }
+    
+    @media (max-width: 575.98px) { /* Celular: espaçamento maior */
+        .flex-grow-1 {
+            padding-bottom: 3rem !important;
+        }
+    }
     </style>
 </head>
 <body style="background-color: black;">
@@ -64,55 +123,121 @@
                 </nav>
             </div>
         </div>
-
-        <!-- Player do filme -->
-        <div class="toopo">
-        <div class="card mt-3 video-container">
-            <div class="card-body">
-                <iframe id="ve-iframe" 
-                        src="" 
-                        width="100%" 
-                        frameborder="0" 
-                        allowfullscreen 
-                        webkitallowfullscreen 
-                        mozallowfullscreen>
-                  
-                </iframe>
+    </div>
+    
+    <div class="flex-grow-1">
+        <div class="container toopo">
+            <div class="card mt-3 video-container">
+                <div class="card-body">
+                    <iframe id="ve-iframe" 
+                            src="" 
+                            width="100%" 
+                            frameborder="0" 
+                            allowfullscreen 
+                            webkitallowfullscreen 
+                            mozallowfullscreen>
+                    </iframe>
+                </div>
             </div>
+        </div>
+
+        <div class="container topo"> 
+            <div id="movie-details">
+                <p style="color: white; text-align: center;">Buscando detalhes do filme...</p>
             </div>
         </div>
     </div>
-   
+    <footer class=" bg-dark text-center py-4 ">
+        <div class="container">
+            <small class="text-secondary d-block mt-3">&copy; 2025 Todos os direitos reservados.</small>
+        </div>
+    </footer>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 <script>
-    // 1. Lê os parâmetros 'filme' (o ID) e 'player' (qual serviço usar) da URL
+    const P = 'e213742d';
+    const p = 'ac5f2f6cd11f3f89';
+    const a = 'bae0';
+    const A='8c2b'
+    const b=P+ p + a+A
+    const c=b;
+    
+    const TMDB_API_KEY = c; 
+    const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+    
     const urlParams = new URLSearchParams(window.location.search);
-    const filmeId = urlParams.get('filme');
-    const playerType = urlParams.get('player'); // Novo parâmetro 'player'
+    const filmeId = urlParams.get('filme'); 
+    const playerType = urlParams.get('player'); 
     
     const iframe = document.getElementById('ve-iframe');
-    let playerUrl = '';
+    const detailsContainer = document.getElementById('movie-details');
 
-    if (filmeId) {
-        // 2. Decide qual URL base usar com base no parâmetro 'player'
+    async function getTMDbIdFromIMDb(imdbId) {
+        try {
+            const response = await fetch(`${TMDB_BASE_URL}/find/${imdbId}?api_key=${TMDB_API_KEY}&language=pt-BR&external_source=imdb_id`);
+            
+            if (!response.ok) {
+                 console.error(`Busca FIND falhou com status: ${response.status}`);
+                 return null;
+            }
+
+            const data = await response.json();
+            
+            if (data.movie_results && data.movie_results.length > 0) {
+                return data.movie_results[0].id;
+            }
+            return null;
+        } catch (error) {
+            console.error("Falha ao obter TMDb ID:", error);
+            return null;
+        }
+    }
+    
+    async function loadMovieAndPlayer() {
+        if (!filmeId) {
+            detailsContainer.innerHTML = '<h1>Erro</h1><p>ID do filme não fornecido na URL.</p>';
+            return;
+        }
+
+        let tmdbId = null;
+        if (filmeId.startsWith('tt')) {
+            tmdbId = await getTMDbIdFromIMDb(filmeId);
+        }
+
+        if (tmdbId) {
+            const detailsResponse = await fetch(`${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=pt-BR`);
+            
+            if (detailsResponse.ok) {
+                const movieDetails = await detailsResponse.json();
+                
+                const titulo = movieDetails.title || "Título Indisponível";
+                const sinopse = movieDetails.overview || "Sinopse não fornecida.";
+                
+                detailsContainer.innerHTML = `
+                    <h1>${titulo}</h1>
+                    <p>${sinopse}</p>
+                `;
+            } else {
+                 detailsContainer.innerHTML = '<h1>Detalhes Não Encontrados</h1><p>Não foi possível carregar o nome e a sinopse.</p>';
+            }
+        } else {
+             detailsContainer.innerHTML = '<h1>Detalhes Não Encontrados</h1><p>Não foi possível reconhecer o filme. Verifique se o ID é do IMDb (tt...)</p>';
+        }
+
+        let playerUrl = '';
         if (playerType === 'mega') {
-            // Player 1: MegaEmbed
             playerUrl = `https://megaembed.com/embed/${filmeId}`;
         } else {
-            // Player Padrão (PlayerFlixAPI, ou se o parâmetro for 'flix' ou não existir)
             playerUrl = `https://playerflixapi.com/filme/${filmeId}`;
         }
 
-        // 3. Define o src do iframe
         iframe.src = playerUrl;
-    } else {
-      // Opcional: URL padrão se não houver ID do filme
-      console.error("ID do filme não encontrado na URL.");
     }
-</script>
 
+    loadMovieAndPlayer();
+</script>
 </body>
 </html>
